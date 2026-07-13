@@ -5,12 +5,14 @@ import DashboardHome from './pages/admin/DashboardHome';
 import DataBooking from './pages/admin/DataBooking';
 import DataKamar from './pages/admin/DataKamar';
 import Banner from './pages/admin/Banner';
+import LoginAdmin from './pages/LoginAdmin';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginAdmin />} />
         
         {/* Induk Rute Admin */}
         <Route path="/admin" element={<AdminDashboard />}>
