@@ -16,7 +16,7 @@ export default function AdminSidebar() {
     <aside className="w-64 bg-white border-r border-gray-100 flex flex-col justify-between h-screen sticky top-0">
       <div>
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-indigo-600 tracking-wider">KOST<span className="text-gray-800">KU</span></h1>
+          <h1 className="text-2xl font-bold text-indigo-600 tracking-wider">MA<span className="text-gray-800">KOS</span></h1>
         </div>
         <nav className="mt-6 px-4 space-y-2">
           
@@ -40,7 +40,9 @@ export default function AdminSidebar() {
       </div>
       <div className="p-4">
         <button className="flex items-center gap-3 text-gray-500 hover:text-red-500 px-4 py-3 font-medium transition w-full">
-          <LogOut size={20} /> Logout
+          <Link to="/"
+           > Logout
+           </Link>
         </button>
       </div>
     </aside>
