@@ -54,7 +54,7 @@ export default function LoginAdmin() {
             Sistem<br />Manajemen<br />Admin.
           </h2>
           <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-            Kelola data kamar, pantau pemesanan, dan atur tampilan website dengan aman dan mudah dalam satu pintu.
+            Kelola data kamar, pantau pemesanan, dan atur tampilan website dengan aman dan mudah.
           </p>
         </div>
 
@@ -94,10 +94,6 @@ export default function LoginAdmin() {
                   className="w-full bg-white/20 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                   required
                 />
-              </div>
-
-              <div className="text-right">
-                <a href="#" className="text-sm text-indigo-300 hover:text-white transition">Lupa password?</a>
               </div>
 
               <button 
