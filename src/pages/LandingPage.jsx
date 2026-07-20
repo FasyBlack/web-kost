@@ -3,39 +3,67 @@ import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import Facilities from '../components/Facilities';
 import RoomList from '../components/RoomList';
+import { supabase } from '../supabaseClient';
 
 export default function LandingPage() {
-  // Data dikumpulkan di sini, lalu dilempar (sebagai Props) ke komponen yang butuh
   const whatsappLink = "https://wa.me/6281234567890?text=Halo,%20saya%20tertarik%20dengan%20kost%20ini.";
-  const backgroundImages = [
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2000",
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=2000&q=80",
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2000",
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=2000&q=80"
-  ];
-
-  // 2. State untuk mengingat gambar mana yang lagi tampil (dimulai dari index 0)
+  
+  const [banners, setBanners] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // 3. Mesin Waktu (useEffect) untuk mengganti gambar otomatis
   useEffect(() => {
+    const fetchBanners = async () => {
+      const { data, error } = await supabase
+        .from('banner')
+        .select('image')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const imageUrls = data.map(item => item.image);
+        setBanners(imageUrls);
+      } else {
+        setBanners(["https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=2000"]);
+      }
+    };
+
+    fetchBanners();
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return; 
+
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => 
-        // Kalau udah gambar terakhir, balik ke 0. Kalau belum, lanjut ke gambar berikutnya (+1)
-        prevIndex === backgroundImages.length - 1 ? 0 : prevIndex + 1
+        prevIndex === banners.length - 1 ? 0 : prevIndex + 1
       );
-    }, 2000); // 5000 ms = ganti setiap 5 detik
+    }, 4000);
 
-    // Bersihkan interval kalau pindah halaman biar browser nggak nge-lag
     return () => clearInterval(interval);
-  }, []);
-  return (
-    <div 
-      className="min-h-screen font-sans text-white bg-cover bg-center bg-fixed relative transition-all duration-1000 ease-in-out"
-      style={{ backgroundImage: `url(${backgroundImages[currentIndex]})` }}
-    >
-      <div className="absolute inset-0 bg-black/40"></div>
+  }, [banners]);
 
+  return (
+    // Tambahkan overflow-hidden di bungkus paling luar supaya gambar yang digeser ke samping tidak bikin web-nya bisa di-scroll ke kanan/kiri
+    <div className="min-h-screen font-sans text-white relative overflow-hidden">
+      
+      {/* WADAH SLIDER BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        {banners.map((img, index) => (
+          <div
+            key={index}
+            // transition-transform adalah kunci animasi gesernya
+            className="fixed inset-0 bg-cover bg-center  bg-fixed transition-transform duration-1000 ease-in-out"
+            style={{
+              backgroundImage: `url(${img})`,
+              // Logika geser: 0% (tampil), 100% (sembunyi di kanan), -100% (sembunyi di kiri)
+              transform: `translateX(${(index - currentIndex) * 100}%)`,
+            }}
+          />
+        ))}
+        {/* Overlay hitam kita pindah ke dalam sini, menutupi semua gambar biar teks tetap terbaca */}
+        <div className="absolute inset-0 bg-black/40"></div>
+      </div>
+
+      {/* KONTEN WEBSITE (Hero, Fasilitas, dll) */}
       <div className="relative z-10 pb-20">
         <Navbar whatsappLink={whatsappLink} />
         <Hero whatsappLink={whatsappLink} />
