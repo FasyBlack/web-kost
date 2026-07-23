@@ -4,6 +4,8 @@ import Hero from '../components/Hero';
 import Facilities from '../components/Facilities';
 import RoomList from '../components/RoomList';
 import { supabase } from '../supabaseClient';
+import LocationMap from '../components/LocationMap';
+import Testimonials from '../components/Testimonials';
 
 export default function LandingPage() {
   const whatsappLink = "https://wa.me/6281234567890?text=Halo,%20saya%20tertarik%20dengan%20kost%20ini.";
@@ -69,6 +71,8 @@ export default function LandingPage() {
         <Hero whatsappLink={whatsappLink} />
         <Facilities />
         <RoomList whatsappLink={whatsappLink} />
+        <Testimonials></Testimonials>
+        <LocationMap/>
         
         <footer className="max-w-7xl mx-auto px-4 mt-24 text-center text-sm text-gray-300 border-t border-white/20 pt-8">
           <p>&copy; 2026 Web Kost. All rights reserved.</p>
