@@ -8,7 +8,7 @@ import LocationMap from '../components/LocationMap';
 import Testimonials from '../components/Testimonials';
 
 export default function LandingPage() {
-  const whatsappLink = "https://wa.me/6281234567890?text=Halo,%20saya%20tertarik%20dengan%20kost%20ini.";
+  const whatsappLink = "https://wa.me/6283840546702?text=Halo,%20saya%20tertarik%20dengan%20kost%20ini.";
   
   const [banners, setBanners] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
