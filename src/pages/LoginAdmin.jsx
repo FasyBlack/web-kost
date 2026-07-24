@@ -48,7 +48,7 @@ export default function LoginAdmin() {
         <div className="w-full md:w-1/2 p-10 md:p-14 flex flex-col justify-center text-white">
           <div className="flex items-center gap-2 mb-6">
             <Lock className="text-indigo-400" size={32} />
-            <h1 className="text-3xl font-extrabold tracking-wider">MA<span className="text-indigo-400">KOS</span></h1>
+            <h1 className="text-3xl font-extrabold tracking-wider">KOST<span className="text-indigo-400">KU</span></h1>
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
             Sistem<br />Manajemen<br />Admin.
