@@ -7,6 +7,8 @@ import DataKamar from './pages/admin/DataKamar';
 import Banner from './pages/admin/Banner';
 import LoginAdmin from './pages/LoginAdmin';
 import Security from './components/Security';
+import CekPesanan from './pages/CekPesanan';
+import SemuaKamar from './pages/SemuaKamar';
 
 export default function App() {
   return (
@@ -14,6 +16,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginAdmin />} />
+        <Route path="/cek-pesanan" element={<CekPesanan />} />
+        <Route path="/kamar" element={<SemuaKamar />} />
         
         {/* Induk Rute Admin */}
         <Route element={<Security/>}>
