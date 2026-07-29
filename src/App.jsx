@@ -9,6 +9,8 @@ import LoginAdmin from './pages/LoginAdmin';
 import Security from './components/Security';
 import CekPesanan from './pages/CekPesanan';
 import SemuaKamar from './pages/SemuaKamar';
+import Ulasan from './pages/Ulasan';
+import DataTestimoni from './pages/admin/DataTestimoni';
 
 export default function App() {
   return (
@@ -18,15 +20,16 @@ export default function App() {
         <Route path="/login" element={<LoginAdmin />} />
         <Route path="/cek-pesanan" element={<CekPesanan />} />
         <Route path="/kamar" element={<SemuaKamar />} />
+        <Route path="/ulasan" element={<Ulasan />} />
         
         {/* Induk Rute Admin */}
         <Route element={<Security/>}>
         <Route path="/admin" element={<AdminDashboard />}>
-          {/* Anak-anak rute yang tayang di dalam Outlet */}
           <Route index element={<DashboardHome />} />
           <Route path="booking" element={<DataBooking />} />
           <Route path="kamar" element={<DataKamar />} />
           <Route path="banner" element={<Banner />} />
+          <Route path="Testimoni" element={<DataTestimoni />} />
         </Route>
         </Route>
       </Routes>
