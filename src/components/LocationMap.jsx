@@ -1,7 +1,48 @@
-import { MapPin, Navigation, Phone, ShieldCheck } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MapPin, Navigation, ShieldCheck, Loader2 } from 'lucide-react';
+import { supabase } from '../supabaseClient'; // Sesuaikan path ini
 
 export default function LocationMap() {
-  const googleMapsUrl = "https://maps.google.com/?q=-6.2088,106.8456"; // Ganti dengan titik koordinat / link Google Maps Kost-mu
+  // 1. Siapkan Wadah Data (State)
+  const [pengaturan, setPengaturan] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // 2. Ambil data dari Supabase saat komponen dirender (Effect)
+  useEffect(() => {
+    const fetchPengaturan = async () => {
+      const { data, error } = await supabase
+        .from('pengaturan')
+        .select('*')
+        .eq('id', 1) // Ambil settingan utama
+        .single();
+
+      if (!error && data) {
+        setPengaturan(data);
+      }
+      setLoading(false);
+    };
+
+    fetchPengaturan();
+  }, []);
+
+  // 3. Ekstrak Link Arah (Maps URL) dari Link Embed (Iframe src)
+  // Kalau admin naruh link embed iframe, tombol "Petunjuk Arah" bisa pakai trik ini
+  // Kalau mau lebih rapi, di db bisa dibikin 2 kolom (1 embed, 1 URL klik)
+  const directionUrl = pengaturan 
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pengaturan.alamat)}`
+    : "https://maps.google.com/";
+
+  // Jika data masih loading
+  if (loading) {
+    return (
+      <section className="max-w-7xl mx-auto px-4 mt-12 mb-20 relative z-10 flex justify-center py-20">
+        <Loader2 className="animate-spin text-white/50" size={40} />
+      </section>
+    );
+  }
+
+  // Jika data kosong atau error
+  if (!pengaturan) return null;
 
   return (
     <section className="max-w-7xl mx-auto px-4 mt-12 mb-20 relative z-10">
@@ -19,8 +60,9 @@ export default function LocationMap() {
               Akses Mudah Ke mana Saja
             </h2>
 
-            <p className="text-sm text-gray-200 leading-relaxed">
-              Jl. Mawar Indah No. 45, Kecamatan Sukajadi, Kota Bandung, Jawa Barat 40161.
+            {/* ALAMAT DINAMIS */}
+            <p className="text-sm text-gray-200 leading-relaxed font-semibold">
+              {pengaturan.alamat}
             </p>
 
             <ul className="space-y-2 text-xs text-gray-200">
@@ -34,13 +76,13 @@ export default function LocationMap() {
               </li>
               <li className="flex items-center gap-2">
                 <ShieldCheck size={16} className="text-green-400 shrink-0" />
-                <span>Dekat Minimarket, Minimarket & Area Kuliner 24 Jam</span>
+                <span>Dekat Minimarket & Area Kuliner 24 Jam</span>
               </li>
             </ul>
 
             <div className="pt-2">
               <a 
-                href={googleMapsUrl}
+                href={directionUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl shadow-lg transition"
@@ -50,18 +92,26 @@ export default function LocationMap() {
             </div>
           </div>
 
-          {/* GOOGLE MAPS EMBED (Kanan - 2 Kolom) */}
-          <div className="lg:col-span-2 h-72 md:h-80 rounded-2xl overflow-hidden border border-white/30 shadow-inner">
-            <iframe
-              title="Lokasi Kost"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31597.731672210186!2d113.21167307807046!3d-8.130322396914984!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd65dab51496717%3A0x31d756cd65c75b98!2sLumajang%2C%20Kec.%20Lumajang%2C%20Kabupaten%20Lumajang%2C%20Jawa%20Timur!5e0!3m2!1sid!2sid!4v1784817007257!5m2!1sid!2s"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            ></iframe>
+          {/* GOOGLE MAPS EMBED DINAMIS (Kanan - 2 Kolom) */}
+          <div className="lg:col-span-2 h-72 md:h-80 rounded-2xl overflow-hidden border border-white/30 shadow-inner bg-white/5 relative">
+            
+            {pengaturan.link_maps ? (
+               <iframe
+                 title={`Lokasi ${pengaturan.nama_kost}`}
+                 src={pengaturan.link_maps}
+                 width="100%"
+                 height="100%"
+                 style={{ border: 0 }}
+                 allowFullScreen=""
+                 loading="lazy"
+                 referrerPolicy="no-referrer-when-downgrade"
+               ></iframe>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-white/50 text-sm">
+                Peta belum diatur oleh admin.
+              </div>
+            )}
+            
           </div>
 
         </div>

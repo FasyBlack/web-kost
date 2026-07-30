@@ -11,6 +11,7 @@ import CekPesanan from './pages/CekPesanan';
 import SemuaKamar from './pages/SemuaKamar';
 import Ulasan from './pages/Ulasan';
 import DataTestimoni from './pages/admin/DataTestimoni';
+import Pengaturan from './pages/admin/Pengaturan';
 
 export default function App() {
   return (
@@ -29,7 +30,8 @@ export default function App() {
           <Route path="booking" element={<DataBooking />} />
           <Route path="kamar" element={<DataKamar />} />
           <Route path="banner" element={<Banner />} />
-          <Route path="Testimoni" element={<DataTestimoni />} />
+          <Route path="testimoni" element={<DataTestimoni />} />
+          <Route path="pengaturan" element={<Pengaturan />} />
         </Route>
         </Route>
       </Routes>

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Calendar, LogOut, Image as ImageIcon, Star, StarCheckIcon } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, Image as ImageIcon, StarCheckIcon, Settings } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 
@@ -50,6 +50,10 @@ export default function AdminSidebar() {
 
           <Link to="/admin/testimoni" className={menuStyle('/admin/testimoni')}>
             <StarCheckIcon size={20} /> Testimoni
+          </Link>
+
+          <Link to="/admin/pengaturan" className={menuStyle('/admin/pengaturan')}>
+            <Settings size={20} /> Pengaturan
           </Link>
 
         </nav>

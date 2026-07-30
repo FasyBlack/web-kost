@@ -106,8 +106,8 @@ export default function DataTestimoni() {
               <th className="py-4 pl-6 font-bold w-48">Info Pemesan</th>
               <th className="py-4 font-bold w-32">Rating</th>
               <th className="py-4 font-bold">Isi Ulasan</th>
-              <th className="py-4 font-bold w-32 text-center">Status Web</th>
-              <th className="py-4 pr-6 font-bold text-right w-32">Aksi</th>
+              <th className="py-4 px-4 font-bold w-40 text-center">Status Web</th>
+              <th className="py-4  pr-6  pl-4 font-bold text-right w-40">Aksi</th>
             </tr>
           </thead>
           <tbody className="text-sm">
@@ -146,7 +146,7 @@ export default function DataTestimoni() {
                   
                   {/* Kolom Status */}
                   <td className="py-4 text-center">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
                       testi.tampil ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'
                     }`}>
                       {testi.tampil ? <><CheckCircle2 size={12}/> Tampil</> : <><XCircle size={12}/> Disembunyikan</>}
@@ -155,25 +155,29 @@ export default function DataTestimoni() {
 
                   {/* Kolom Aksi */}
                   <td className="py-4 pr-6">
-                    <div className="flex justify-end gap-2">
-                      {/* Tombol Toggle Tampil/Sembunyi */}
+                    <div className="flex justify-end items-center gap-2">
+                      
+                      {/* Tombol Toggle Tampil/Sembunyi (Dengan Teks) */}
                       <button 
                         onClick={() => handleToggleTampil(testi.id, testi.tampil)}
-                        title={testi.tampil ? "Sembunyikan dari Web" : "Tampilkan di Web"}
-                        className={`p-2 rounded-lg transition ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition border ${
                           testi.tampil 
-                          ? 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100' 
-                          : 'bg-green-50 text-green-600 hover:bg-green-100'
+                          ? 'bg-yellow-50 text-yellow-600 hover:bg-yellow-100 border-yellow-200' 
+                          : 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200'
                         }`}
                       >
-                        {testi.tampil ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {testi.tampil ? (
+                          <><EyeOff size={14} /> Sembunyikan</>
+                        ) : (
+                          <><Eye size={14} /> Tampilkan</>
+                        )}
                       </button>
 
                       {/* Tombol Hapus */}
                       <button 
                         onClick={() => handleHapus(testi.id)}
                         title="Hapus Ulasan"
-                        className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition"
+                        className="py-1.5 px-3 gap-1.5 rounded-lg bg-red-100 text-red-500 hover:bg-red-300 transition"
                       >
                         <Trash2 size={16} />
                       </button>
