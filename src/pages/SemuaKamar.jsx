@@ -16,6 +16,23 @@ export default function SemuaKamar() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [noWaAdmin, setNoWaAdmin] = useState('085732942241');
+
+  useEffect(() => {
+    const fetchNomorWa = async () => {
+      const { data, error } = await supabase
+        .from('pengaturan')
+        .select('nomor_wa')
+        .eq('id', 1)
+        .single();
+
+      if (!error && data) {
+        setNoWaAdmin(data.nomor_wa);
+      }
+    };
+    fetchNomorWa();
+  }, []);
+
   useEffect(() => {
     const fetchRooms = async () => {
       setLoading(true);
@@ -65,9 +82,8 @@ export default function SemuaKamar() {
   };
 
   const handleTanyaWA = () => {
-    const nomorWaAdmin = "6283840546702";
     const pesan = `Halo Admin Kos, saya melihat dari website dan ingin bertanya lebih lanjut mengenai kamar *${selectedRoom.nama}* (Tipe: ${selectedRoom.tipe}). Apakah masih tersedia?`;
-    window.open(`https://wa.me/${nomorWaAdmin}?text=${encodeURIComponent(pesan)}`, '_blank');
+    window.open(`https://wa.me/${noWaAdmin}?text=${encodeURIComponent(pesan)}`, '_blank');
   };
 
   return (

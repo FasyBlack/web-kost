@@ -96,7 +96,7 @@ export default function RoomList() {
   };
 
   return (
-    <section id="kamar" className="max-w-7xl mx-auto px-4 mt-24 relative z-10">
+    <section id="kamar" className="max-w-7xl mx-auto px-4 mt-24 relative z-50">
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold mb-2 drop-shadow-md text-white">Pilihan Kamar</h2>
         <p className="text-gray-200 text-sm">Temukan tipe kamar yang sesuai dengan kenyamanan Anda</p>
@@ -208,7 +208,7 @@ export default function RoomList() {
 
       {/* MODAL POP-UP FORM BOOKING */}
       {isModalOpen && selectedRoom && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up">
             <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
               <div>

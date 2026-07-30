@@ -8,8 +8,26 @@ import LocationMap from '../components/LocationMap';
 import Testimonials from '../components/Testimonials';
 
 export default function LandingPage() {
-  const whatsappLink = "https://wa.me/6283840546702?text=Halo,%20saya%20tertarik%20dengan%20kost%20ini.";
-  
+  const [noWaAdmin, setNoWaAdmin] = useState('6285732942241');
+
+  // 2. Tarik data dari database saat Landing Page dibuka
+  useEffect(() => {
+    const getNomorWa = async () => {
+      const { data, error } = await supabase
+        .from('pengaturan')
+        .select('nomor_wa')
+        .eq('id', 1)
+        .single();
+      
+      if (data && !error) {
+        setNoWaAdmin(data.nomor_wa);
+      }
+    };
+    getNomorWa();
+  }, []);
+
+  // 3. Jadikan link dinamis pakai variabel noWaAdmin
+  const whatsappLink = `https://wa.me/${noWaAdmin}?text=Halo,%20saya%20tertarik%20dengan%20kost%20ini.`;
   const [banners, setBanners] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
