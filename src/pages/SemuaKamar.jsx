@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Filter, Search, Loader2, X, LayoutGrid, BedDouble, Users, CheckCircle2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Filter, Search, Loader2, X, LayoutGrid, BedDouble, Users, CheckCircle2, MessageCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../supabaseClient';
-import GlassCard from '../components/GlassCard'; // Pastikan path ini benar sesuai struktur foldermu
+import GlassCard from '../components/GlassCard'; 
 
 export default function SemuaKamar() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // State untuk Filter & Search
   const [filterTipe, setFilterTipe] = useState('Semua');
   const [filterStatus, setFilterStatus] = useState('Semua');
@@ -15,6 +15,11 @@ export default function SemuaKamar() {
   // State untuk Modal Detail
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeImage, setActiveImage] = useState(null);
+
+  // State untuk Fullscreen Lightbox
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   const [noWaAdmin, setNoWaAdmin] = useState('085732942241');
 
@@ -50,11 +55,10 @@ export default function SemuaKamar() {
   }, []);
 
   // === GENERATE DROPDOWN DINAMIS DARI DATA BACKEND ===
-  // Mengambil nilai unik dari array rooms untuk dijadikan opsi dropdown
   const getUniqueOptions = (field) => {
     if (!rooms.length) return ['Semua'];
-    const options = rooms.map(item => item[field]).filter(Boolean); // Hapus nilai null/kosong
-    return ['Semua', ...new Set(options)]; // Hapus duplikat pakai Set
+    const options = rooms.map(item => item[field]).filter(Boolean); 
+    return ['Semua', ...new Set(options)]; 
   };
 
   const opsiTipeKamar = getUniqueOptions('tipe');
@@ -73,6 +77,7 @@ export default function SemuaKamar() {
   // === FUNGSI MODAL ===
   const handleOpenDetail = (room) => {
     setSelectedRoom(room);
+    setActiveImage(room.image);
     setIsModalOpen(true);
   };
 
@@ -86,10 +91,31 @@ export default function SemuaKamar() {
     window.open(`https://wa.me/${noWaAdmin}?text=${encodeURIComponent(pesan)}`, '_blank');
   };
 
+  // === LOGIKA FULLSCREEN LIGHTBOX ===
+  const getAllImages = () => {
+    if (!selectedRoom) return [];
+    const images = [selectedRoom.image]; 
+    if (selectedRoom.galeri_foto) {
+      const gallery = selectedRoom.galeri_foto.split(',').map(url => url.trim()).filter(Boolean);
+      images.push(...gallery); 
+    }
+    return images;
+  };
+
+  const allImages = getAllImages();
+
+  const handlePrevImage = () => {
+    setCurrentIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+  };
+
+
   return (
-    // Background dibuat gelap/gradient agar efek Glassmorphism dari GlassCard terlihat elegan
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900 pb-20 font-sans">
-      
+
       {/* HEADER EKSPLORASI */}
       <div className="pt-12 pb-16 px-4 relative z-10">
         <div className="max-w-7xl mx-auto">
@@ -102,30 +128,27 @@ export default function SemuaKamar() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 relative z-10">
-        
-        {/* PANEL FILTER & SEARCH (Bentuk Glassmorphism juga) */}
+
+        {/* PANEL FILTER & SEARCH */}
         <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-lg p-5 mb-10 border border-white/20 flex flex-col lg:flex-row gap-4 items-center justify-between">
-          
           <div className="flex items-center gap-3 w-full lg:w-auto">
             <Filter className="text-indigo-300" size={24} />
             <span className="font-bold text-white hidden sm:block">Filter:</span>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto flex-1 justify-end">
-            {/* LIVE SEARCH */}
             <div className="relative w-full sm:max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="text" 
-                placeholder="Cari nama kamar..." 
+              <input
+                type="text"
+                placeholder="Cari nama kamar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 rounded-xl pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white/20 transition"
               />
             </div>
 
-            {/* DROPDOWN TIPE (DINAMIS) */}
-            <select 
+            <select
               className="bg-white border border-gray-300 text-gray-800 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto cursor-pointer"
               value={filterTipe}
               onChange={(e) => setFilterTipe(e.target.value)}
@@ -137,8 +160,7 @@ export default function SemuaKamar() {
               ))}
             </select>
 
-            {/* DROPDOWN STATUS (DINAMIS) */}
-            <select 
+            <select
               className="bg-white border border-gray-300 text-gray-800 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto cursor-pointer"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -152,7 +174,7 @@ export default function SemuaKamar() {
           </div>
         </div>
 
-        {/* GRID HASIL PENCARIAN (MENGGUNAKAN GLASS CARD) */}
+        {/* GRID HASIL PENCARIAN */}
         {loading ? (
           <div className="flex justify-center py-20 text-indigo-300 gap-3">
             <Loader2 className="animate-spin" size={28} /> Memuat data kamar...
@@ -166,22 +188,17 @@ export default function SemuaKamar() {
         ) : (
           <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredRooms.map((room) => (
-              <GlassCard 
-                key={room.id} 
-                className={`p-0 overflow-hidden flex flex-col justify-between relative transition duration-300 hover:scale-[1.02] ${
-                  room.tipe === 'Premium' ? 'border-blue-400 border-2' : ''
-                }`}
+              <GlassCard
+                key={room.id}
+                className={`p-0 overflow-hidden flex flex-col justify-between relative transition duration-300 hover:scale-[1.02] ${room.tipe === 'Premium' ? 'border-blue-400 border-2' : ''}`}
               >
                 <div>
                   <div className="relative">
-                    <img src={room.image} alt={room.nama} className="w-full h-48 object-cover" />
-                    <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow ${
-                      room.status === 'Tersedia' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-                    }`}>
+                    <img src={room.image} loading="lazy" alt={room.nama} className="w-full h-48 object-cover" />
+                    <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-bold shadow ${room.status === 'Tersedia' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                       {room.status}
                     </span>
                   </div>
-
                   <div className="p-5">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-xl font-bold text-white">{room.nama}</h3>
@@ -189,7 +206,6 @@ export default function SemuaKamar() {
                         {room.tipe}
                       </span>
                     </div>
-
                     <div className="flex gap-3 text-xs text-gray-200 mb-4 pb-3 border-b border-white/10">
                       <span className="flex items-center gap-1"><LayoutGrid size={14} /> {room.ukuran || '-'}</span>
                       <span>•</span>
@@ -199,14 +215,12 @@ export default function SemuaKamar() {
                     </div>
                   </div>
                 </div>
-
                 <div className="p-5 pt-0">
                   <div className="text-2xl font-bold text-white mb-4">
                     Rp {formatRupiah(room.harga)}
                     <span className="text-xs font-normal text-gray-300"> / {room.periode_sewa || 'Bulan'}</span>
                   </div>
-
-                  <button 
+                  <button
                     onClick={() => handleOpenDetail(room)}
                     className="w-full block text-center py-2.5 rounded-lg transition font-bold text-sm bg-white/20 hover:bg-white/30 text-white shadow-lg border border-white/30"
                   >
@@ -220,31 +234,62 @@ export default function SemuaKamar() {
       </div>
 
       {/* ========================================================= */}
-      {/* MODAL POP-UP DETAIL KAMAR (Gaya Traveloka/Agoda) */}
+      {/* MODAL POP-UP DETAIL KAMAR */}
       {/* ========================================================= */}
       {isModalOpen && selectedRoom && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row shadow-2xl relative">
-            
+
             {/* Tombol Close Mengambang */}
-            <button 
-              onClick={handleCloseDetail} 
+            <button
+              onClick={handleCloseDetail}
               className="absolute top-4 right-4 z-20 bg-white/80 backdrop-blur-md p-2 rounded-full text-gray-800 hover:bg-red-50 hover:text-red-600 transition shadow-md"
             >
               <X size={20} />
             </button>
 
-            {/* Sisi Kiri: Simulasi Galeri Foto */}
-            <div className="w-full md:w-1/2 h-64 md:h-auto relative bg-gray-100">
-              <img src={selectedRoom.image} alt={selectedRoom.nama} className="w-full h-full object-cover" />
-              
-              {/* Simulasi Thumbnail Foto Lain (Bisa dihubungkan ke kolom database lain nanti) */}
-              <div className="absolute bottom-4 left-0 w-full flex justify-center gap-2 px-4">
-                <img src={selectedRoom.image} className="w-14 h-14 rounded-lg border-2 border-white object-cover shadow-md" />
-                {/* Dummy Foto Kamar Mandi / Sudut Lain */}
-                <div className="w-14 h-14 rounded-lg border-2 border-white bg-black/50 flex items-center justify-center backdrop-blur-sm cursor-pointer hover:bg-black/40 transition">
-                   <span className="text-white text-[10px] font-bold text-center leading-tight">+3<br/>Foto</span>
+            {/* Sisi Kiri: Galeri Foto Dinamis */}
+            <div className="w-full md:w-1/2 h-64 md:h-auto relative bg-gray-100 flex flex-col">
+
+              {/* FOTO UTAMA (BISA DIKLIK JADI FULLSCREEN) */}
+              <div 
+                className="flex-1 w-full h-full relative group cursor-pointer"
+                onClick={() => {
+                  const idx = allImages.indexOf(activeImage);
+                  setCurrentIndex(idx !== -1 ? idx : 0);
+                  setIsFullscreen(true);
+                }}
+              >
+                <img
+                  src={activeImage}
+                  alt={selectedRoom.nama}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+                />
+                {/* Overlay saat di-hover */}
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                   <span className="text-white font-bold bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">Fullscreen</span>
                 </div>
+              </div>
+
+              {/* THUMBNAIL FOTO */}
+              <div className="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/70 to-transparent flex justify-center gap-3 overflow-x-auto no-scrollbar">
+                <img
+                  src={selectedRoom.image}
+                  onClick={() => setActiveImage(selectedRoom.image)}
+                  className={`w-14 h-14 rounded-lg object-cover shadow-lg cursor-pointer transition-all duration-200 ${activeImage === selectedRoom.image ? 'border-2 border-indigo-400 scale-110' : 'border border-white/50 opacity-70 hover:opacity-100'}`}
+                />
+                {selectedRoom.galeri_foto && selectedRoom.galeri_foto.split(',').map((url, idx) => {
+                  const cleanUrl = url.trim();
+                  if (!cleanUrl) return null;
+                  return (
+                    <img
+                      key={idx}
+                      src={cleanUrl}
+                      onClick={() => setActiveImage(cleanUrl)}
+                      className={`w-14 h-14 rounded-lg object-cover shadow-lg cursor-pointer transition-all duration-200 ${activeImage === cleanUrl ? 'border-2 border-indigo-400 scale-110' : 'border border-white/50 opacity-70 hover:opacity-100'}`}
+                    />
+                  );
+                })}
               </div>
             </div>
 
@@ -252,9 +297,7 @@ export default function SemuaKamar() {
             <div className="w-full md:w-1/2 bg-white flex flex-col h-full max-h-[90vh] overflow-y-auto">
               <div className="p-6 md:p-8 flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                    selectedRoom.status === 'Tersedia' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
+                  <span className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${selectedRoom.status === 'Tersedia' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {selectedRoom.status}
                   </span>
                   <span className="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100">
@@ -283,7 +326,6 @@ export default function SemuaKamar() {
                   </div>
                 </div>
 
-                {/* Fasilitas Lengkap */}
                 <h4 className="font-bold text-gray-900 mb-3 border-b border-gray-100 pb-2">Fasilitas Kamar</h4>
                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                   {selectedRoom.fasilitas && selectedRoom.fasilitas.split(',').map((feat, idx) => (
@@ -295,7 +337,6 @@ export default function SemuaKamar() {
                 </ul>
               </div>
 
-              {/* Area Footer (Harga & Tombol Pesan) - Selalu di bawah */}
               <div className="p-6 md:p-8 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4 mt-auto">
                 <div>
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Harga Sewa</p>
@@ -304,15 +345,10 @@ export default function SemuaKamar() {
                     <span className="text-sm font-normal text-gray-500"> / {selectedRoom.periode_sewa || 'Bulan'}</span>
                   </p>
                 </div>
-
-                <button 
+                <button
                   onClick={handleTanyaWA}
                   disabled={selectedRoom.status !== 'Tersedia'}
-                  className={`flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold transition w-full sm:w-auto shadow-lg ${
-                    selectedRoom.status === 'Tersedia' 
-                    ? 'bg-green-500 hover:bg-green-600 text-white hover:scale-105' 
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                  className={`flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold transition w-full sm:w-auto shadow-lg ${selectedRoom.status === 'Tersedia' ? 'bg-green-500 hover:bg-green-600 text-white hover:scale-105' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
                 >
                   {selectedRoom.status === 'Tersedia' ? (
                     <><MessageCircle size={20} /> Tanya via WA</>
@@ -322,7 +358,45 @@ export default function SemuaKamar() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
+      {/* ========================================================= */}
+      {/* FULLSCREEN LIGHTBOX GALLERY */}
+      {/* ========================================================= */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200">
+          
+          <button 
+            onClick={() => setIsFullscreen(false)} 
+            className="absolute top-6 right-6 text-white/70 hover:text-red-500 hover:bg-white/10 p-2 rounded-full transition z-50"
+          >
+            <X size={32} />
+          </button>
+
+          <button 
+            onClick={handlePrevImage} 
+            className="absolute left-4 md:left-10 text-white/70 hover:text-white bg-black/50 hover:bg-indigo-600 p-3 rounded-full transition z-50 shadow-lg"
+          >
+            <ChevronLeft size={36} />
+          </button>
+
+          <img 
+            src={allImages[currentIndex]} 
+            alt="Fullscreen Gallery" 
+            className="max-w-[90vw] max-h-[90vh] object-contain select-none transition-transform duration-300" 
+          />
+
+          <button 
+            onClick={handleNextImage} 
+            className="absolute right-4 md:right-10 text-white/70 hover:text-white bg-black/50 hover:bg-indigo-600 p-3 rounded-full transition z-50 shadow-lg"
+          >
+            <ChevronRight size={36} />
+          </button>
+
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white font-bold bg-black/60 px-4 py-1.5 rounded-full text-sm tracking-widest backdrop-blur-sm">
+            {currentIndex + 1} / {allImages.length}
           </div>
         </div>
       )}

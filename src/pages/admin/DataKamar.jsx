@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Search, Plus, Edit, BedDouble, Users, CheckCircle2, LayoutGrid, X, Loader2, Trash2, AlertTriangle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { supabase } from '../../supabaseClient'; 
+import { supabase } from '../../supabaseClient';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function DataKamar() {
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+  const [galleryFiles, setGalleryFiles] = useState([]);
+  const [activeDetailImage, setActiveDetailImage] = useState(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [editId, setEditId] = useState(null); 
+  const [editId, setEditId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, imageUrl: null });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,9 +21,10 @@ export default function DataKamar() {
   const ITEMS_PER_PAGE = 4;
 
   const [formData, setFormData] = useState({
-    nama: '', tipe: 'Premium', harga: '', 
+    nama: '', tipe: 'Premium', harga: '',
     periode_sewa: 'Bulan', // STATE BARU UNTUK PERIODE
     kapasitas: '', kasur: '', ukuran: '', deskripsi: '', fasilitas: '',
+    galeri_foto: '',
   });
   const [file, setFile] = useState(null);
 
@@ -33,7 +36,10 @@ export default function DataKamar() {
       toast.error('Gagal mengambil data kamar!');
     } else {
       setRooms(data);
-      if (data.length > 0 && !selectedRoom) setSelectedRoom(data[0]);
+      if (data.length > 0 && !selectedRoom) {
+        setSelectedRoom(data[0]);
+        setActiveDetailImage(data[0].image); // <--- Tambahkan ini
+      }
     }
     setLoading(false);
   };
@@ -47,8 +53,8 @@ export default function DataKamar() {
   }, [searchQuery, filterType]);
 
   const filteredRooms = rooms.filter((room) => {
-    const matchesSearch = room.nama.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          room.tipe.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = room.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      room.tipe.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = filterType === 'Semua Tipe' || room.tipe === filterType;
     return matchesSearch && matchesType;
   });
@@ -61,18 +67,20 @@ export default function DataKamar() {
   const handleEditClick = () => {
     setEditId(selectedRoom.id);
     setFormData({
-      nama: selectedRoom.nama, 
-      tipe: selectedRoom.tipe, 
+      nama: selectedRoom.nama,
+      tipe: selectedRoom.tipe,
       harga: selectedRoom.harga.toString(),
       periode_sewa: selectedRoom.periode_sewa || 'Bulan', // Tarik data periode sewa lama
-      kapasitas: selectedRoom.kapasitas, 
-      kasur: selectedRoom.kasur, 
+      kapasitas: selectedRoom.kapasitas,
+      kasur: selectedRoom.kasur,
       ukuran: selectedRoom.ukuran,
-      deskripsi: selectedRoom.deskripsi, 
+      deskripsi: selectedRoom.deskripsi,
       fasilitas: selectedRoom.fasilitas,
+      galeri_foto: selectedRoom.galeri_foto,
     });
     setFile(null);
     setIsModalOpen(true);
+    setGalleryFiles([]);
   };
 
   const handleSumbit = async (e) => {
@@ -83,33 +91,57 @@ export default function DataKamar() {
     const loadingToast = toast.loading(editId ? 'Menyimpan perubahan...' : 'Menyimpan data kamar...');
 
     try {
-      let finalImageUrl = selectedRoom?.image; 
+      let finalImageUrl = selectedRoom?.image;
+      let finalGaleriString = formData.galeri_foto || ''; // Ambil link lama kalau ada
+
+      // 1. UPLOAD FOTO UTAMA (Jika admin memilih foto baru)
       if (file) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
+        const fileName = `cover_${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage.from('kamar').upload(fileName, file);
         if (uploadError) throw uploadError;
         const { data: publicUrlData } = supabase.storage.from('kamar').getPublicUrl(fileName);
-        finalImageUrl = publicUrlData.publicUrl; 
+        finalImageUrl = publicUrlData.publicUrl;
       }
 
+      // 2. UPLOAD BANYAK FOTO GALERI (Jika admin memilih file galeri)
+      if (galleryFiles.length > 0) {
+        const uploadedUrls = [];
+        for (let i = 0; i < galleryFiles.length; i++) {
+          const gFile = galleryFiles[i];
+          const fileExt = gFile.name.split('.').pop();
+          const fileName = `galeri_${Date.now()}_${i}.${fileExt}`;
+
+          const { error: gUploadError } = await supabase.storage.from('kamar').upload(fileName, gFile);
+          if (!gUploadError) {
+            const { data: gUrlData } = supabase.storage.from('kamar').getPublicUrl(fileName);
+            uploadedUrls.push(gUrlData.publicUrl);
+          }
+        }
+        // Gabungkan link galeri lama dengan yang baru di-upload
+        finalGaleriString = finalGaleriString ? `${finalGaleriString},${uploadedUrls.join(',')}` : uploadedUrls.join(',');
+      }
+
+      // 3. SIMPAN KE DATABASE
       const payload = {
-        nama: formData.nama, 
-        tipe: formData.tipe, 
+        nama: formData.nama,
+        tipe: formData.tipe,
         harga: Number(formData.harga),
-        periode_sewa: formData.periode_sewa, // Masukkan periode sewa ke payload
-        kapasitas: formData.kapasitas, 
-        kasur: formData.kasur, 
+        periode_sewa: formData.periode_sewa,
+        kapasitas: formData.kapasitas,
+        kasur: formData.kasur,
         ukuran: formData.ukuran,
-        deskripsi: formData.deskripsi, 
-        fasilitas: formData.fasilitas, 
+        deskripsi: formData.deskripsi,
+        fasilitas: formData.fasilitas,
         image: finalImageUrl,
+        galeri_foto: finalGaleriString,
       };
 
       if (editId) {
         const { error: updateError } = await supabase.from('kamar').update(payload).eq('id', editId);
         if (updateError) throw updateError;
         setSelectedRoom({ ...selectedRoom, ...payload });
+        setActiveDetailImage(finalImageUrl); // Update foto aktif di panel kanan
       } else {
         const { error: insertError } = await supabase.from('kamar').insert([{ ...payload, status: 'Tersedia' }]);
         if (insertError) throw insertError;
@@ -117,7 +149,7 @@ export default function DataKamar() {
 
       toast.dismiss(loadingToast);
       toast.success(editId ? 'Perubahan berhasil disimpan!' : 'Kamar berhasil ditambahkan!');
-      
+
       closeModal();
       fetchRooms();
     } catch (error) {
@@ -131,8 +163,9 @@ export default function DataKamar() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditId(null);
-    setFormData({ nama: '', tipe: 'Premium', harga: '', periode_sewa: 'Bulan', kapasitas: '', kasur: '', ukuran: '', deskripsi: '', fasilitas: '' });
+    setFormData({ nama: '', tipe: 'Premium', harga: '', periode_sewa: 'Bulan', kapasitas: '', kasur: '', ukuran: '', deskripsi: '', fasilitas: '', galeri_foto: '', });
     setFile(null);
+    setGalleryFiles([]);
   };
 
   const executeDelete = async () => {
@@ -147,7 +180,7 @@ export default function DataKamar() {
 
       toast.dismiss(loadingToast);
       toast.success('Kamar sukses dihapus!');
-      setSelectedRoom(null); 
+      setSelectedRoom(null);
       fetchRooms();
     } catch (error) {
       toast.dismiss(loadingToast);
@@ -158,11 +191,11 @@ export default function DataKamar() {
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Tersedia' ? 'Penuh' : 'Tersedia';
     const { error } = await supabase.from('kamar').update({ status: newStatus }).eq('id', id);
-    if (error) { toast.error('Gagal merubah status!'); } 
+    if (error) { toast.error('Gagal merubah status!'); }
     else {
       toast.success(`Status diubah menjadi ${newStatus}`);
       fetchRooms();
-      setSelectedRoom({ ...selectedRoom, status: newStatus }); 
+      setSelectedRoom({ ...selectedRoom, status: newStatus });
     }
   };
 
@@ -170,7 +203,7 @@ export default function DataKamar() {
 
   return (
     // Tambahkan h-full dan overflow-hidden di bungkus paling luar agar halaman utama terkunci
-   <div className="min-h-screen flex flex-col relative pb-10">
+    <div className="min-h-screen flex flex-col relative pb-10">
       <Toaster position="top-right" />
 
       {/* POPUP HAPUS */}
@@ -189,7 +222,7 @@ export default function DataKamar() {
           </div>
         </div>
       )}
-      
+
       {/* MODAL FORM TAMBAH/EDIT */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
@@ -200,11 +233,11 @@ export default function DataKamar() {
             </div>
             <form onSubmit={handleSumbit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Kamar</label><input type="text" required value={formData.nama} onChange={(e) => setFormData({...formData, nama: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
-                
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Nama Kamar</label><input type="text" required value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tipe Kamar</label>
-                  <select value={formData.tipe} onChange={(e) => setFormData({...formData, tipe: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                  <select value={formData.tipe} onChange={(e) => setFormData({ ...formData, tipe: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
                     <option value="Premium">Premium</option><option value="Standar">Standar</option><option value="Eksklusif">Eksklusif</option>
                   </select>
                 </div>
@@ -213,11 +246,11 @@ export default function DataKamar() {
                 <div className="col-span-1 md:col-span-2 grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Harga (Angka saja)</label>
-                    <input type="number" required value={formData.harga} onChange={(e) => setFormData({...formData, harga: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    <input type="number" required value={formData.harga} onChange={(e) => setFormData({ ...formData, harga: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Periode Sewa</label>
-                    <select value={formData.periode_sewa} onChange={(e) => setFormData({...formData, periode_sewa: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <select value={formData.periode_sewa} onChange={(e) => setFormData({ ...formData, periode_sewa: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
                       <option value="Bulan">Per Bulan</option>
                       <option value="Hari">Per Hari</option>
                       <option value="Jam">Per Jam</option>
@@ -225,15 +258,31 @@ export default function DataKamar() {
                   </div>
                 </div>
 
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Kapasitas</label><input type="text" value={formData.kapasitas} onChange={(e) => setFormData({...formData, kapasitas: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipe Kasur</label><input type="text" value={formData.kasur} onChange={(e) => setFormData({...formData, kasur: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Ukuran Kamar</label><input type="text" value={formData.ukuran} onChange={(e) => setFormData({...formData, ukuran: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Kapasitas</label><input type="text" value={formData.kapasitas} onChange={(e) => setFormData({ ...formData, kapasitas: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Tipe Kasur</label><input type="text" value={formData.kasur} onChange={(e) => setFormData({ ...formData, kasur: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
+                <div><label className="block text-sm font-medium text-gray-700 mb-1">Ukuran Kamar</label><input type="text" value={formData.ukuran} onChange={(e) => setFormData({ ...formData, ukuran: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fasilitas (Pisahkan dengan koma)</label><input type="text" value={formData.fasilitas} onChange={(e) => setFormData({...formData, fasilitas: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Singkat</label><textarea rows="3" value={formData.deskripsi} onChange={(e) => setFormData({...formData, deskripsi: e.target.value})} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Fasilitas (Pisahkan dengan koma)</label><input type="text" value={formData.fasilitas} onChange={(e) => setFormData({ ...formData, fasilitas: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Singkat</label><textarea rows="3" value={formData.deskripsi} onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })} className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea></div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Foto Kamar Utama {editId && <span className="text-red-500 text-xs ml-2">(Kosongkan jika tidak ingin mengubah foto)</span>}</label>
                 <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} className="w-full border rounded-lg px-3 py-1.5 focus:outline-none file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700" />
+                {/* KOLOM MULTIPLE UPLOAD GALERI */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Upload Galeri Foto Tambahan <span className="text-gray-400 font-normal">(Bisa pilih lebih dari 1 foto)</span>
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple  // <--- INI KUNCI AGAR BISA PILIH BANYAK FILE
+                    onChange={(e) => setGalleryFiles(Array.from(e.target.files))}
+                    className="w-full border rounded-lg px-3 py-1.5 focus:outline-none file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700"
+                  />
+                  {galleryFiles.length > 0 && (
+                    <p className="text-xs text-green-600 mt-1 font-bold">{galleryFiles.length} file siap diunggah</p>
+                  )}
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                 <button type="button" onClick={closeModal} className="px-5 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">Batal</button>
@@ -263,7 +312,7 @@ export default function DataKamar() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start flex-1 overflow-hidden">
-        
+
         {/* BAGIAN KIRI: DAFTAR KAMAR (INDEPENDENT SCROLL) */}
         {/* max-h-full dan overflow-y-auto bikin bagian kiri ini aja yang bisa discroll */}
         <div className="lg:col-span-2 space-y-4">
@@ -273,9 +322,9 @@ export default function DataKamar() {
             <div className="text-center py-20 bg-white rounded-2xl border text-gray-400">{searchQuery ? 'Kamar yang dicari tidak ditemukan.' : 'Belum ada data kamar.'}</div>
           ) : (
             currentRooms.map((room) => (
-              <div 
+              <div
                 key={room.id}
-                onClick={() => setSelectedRoom(room)}
+                onClick={() => { setSelectedRoom(room); setActiveDetailImage(room.image); }}
                 className={`relative flex flex-col sm:flex-row bg-white rounded-2xl border p-3 gap-4 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:z-10
   ${selectedRoom?.id === room.id ? 'border-indigo-500 ring-2 ring-indigo-500 z-30 shadow-md' : 'border-gray-100 z-0'}`}
               >
@@ -325,11 +374,39 @@ export default function DataKamar() {
                   <button onClick={() => setDeleteConfirm({ isOpen: true, id: selectedRoom.id, imageUrl: selectedRoom.image })} className="flex items-center gap-1 text-xs bg-red-50 text-red-600 px-3 py-1.5 rounded-lg font-bold hover:bg-red-100 transition"><Trash2 size={14} /></button>
                 </div>
               </div>
-              
+
               <div className="overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{selectedRoom.nama}</h2>
                 <div className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold mb-4">Tipe: {selectedRoom.tipe}</div>
-                <img src={selectedRoom.image} alt={selectedRoom.nama} className="w-full h-48 object-cover rounded-xl mb-4 shrink-0" />
+                
+              {/* --- FOTO UTAMA & GALERI MINI ADMIN --- */}
+              <div className="mb-4 shrink-0">
+                {/* Foto Besar */}
+                <img src={activeDetailImage || selectedRoom.image} alt={selectedRoom.nama} className="w-full h-48 object-cover rounded-xl mb-2 transition-all duration-300 shadow-sm" />
+                
+                {/* Deretan Thumbnail Bisa Diklik */}
+                <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                  <img 
+                    src={selectedRoom.image} 
+                    onClick={() => setActiveDetailImage(selectedRoom.image)}
+                    className={`w-12 h-12 rounded-lg object-cover cursor-pointer border-2 transition-all shrink-0 ${activeDetailImage === selectedRoom.image || !activeDetailImage ? 'border-indigo-600 scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`} 
+                  />
+                  {selectedRoom.galeri_foto && selectedRoom.galeri_foto.split(',').map((url, idx) => {
+                    const cleanUrl = url.trim();
+                    if (!cleanUrl) return null;
+                    return (
+                      <img 
+                        key={idx}
+                        src={cleanUrl}
+                        onClick={() => setActiveDetailImage(cleanUrl)}
+                        className={`w-12 h-12 rounded-lg object-cover cursor-pointer border-2 transition-all shrink-0 ${activeDetailImage === cleanUrl ? 'border-indigo-600 scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`} 
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+              {/* -------------------------------------- */}
+
                 <p className="text-sm text-gray-500 mb-6 leading-relaxed">{selectedRoom.deskripsi}</p>
                 <h4 className="font-bold text-sm text-gray-800 mb-3 border-b pb-2">Fasilitas Termasuk</h4>
                 <ul className="space-y-2 mb-6">
