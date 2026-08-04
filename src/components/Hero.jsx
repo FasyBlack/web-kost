@@ -79,7 +79,7 @@ export default function Hero() {
 
               {/* Tombol diarahkan ke halaman /kamar */}
               <a
-                href="/kamar"
+                href={`/kamar?id=${promoRoom.id}`}
                 className="block w-full bg-white text-indigo-900 text-center font-bold py-3 rounded-xl shadow-lg hover:bg-indigo-50 transition transform hover:scale-[1.02]"
               >
                 Lihat Detail & Pesan

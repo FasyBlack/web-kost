@@ -138,6 +138,7 @@ export default function DataKamar() {
       };
 
       if (editId) {
+        payload.created_at = new Date().toISOString();
         const { error: updateError } = await supabase.from('kamar').update(payload).eq('id', editId);
         if (updateError) throw updateError;
         setSelectedRoom({ ...selectedRoom, ...payload });
