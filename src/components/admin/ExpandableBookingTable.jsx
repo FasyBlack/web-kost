@@ -4,7 +4,7 @@ import { supabase } from '../../supabaseClient';
 import toast from 'react-hot-toast';
 
 // ==========================================
-// KOMPONEN BARIS TABEL (BookingRow) - Tidak ada yang diubah fungsinya
+// KOMPONEN BARIS TABEL (BookingRow)
 // ==========================================
 function BookingRow({ booking, refreshData }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,21 +21,52 @@ function BookingRow({ booking, refreshData }) {
     
     if (error) {
       toast.error('Gagal mengubah status!');
-    } else {
-      toast.success(`Status pesanan ${booking.nama_pemesan} menjadi ${newStatus}`);
-      refreshData();
-    }
+      return; 
+    } 
+
+    // 1. Notif Utama: Status Berhasil
+    toast.success(`Status ${booking.nama_pemesan} menjadi ${newStatus}`);
+    refreshData();
+
+    // 2. Notif Pengingat: Arahkan ke tombol WA (Muncul setengah detik kemudian)
+    setTimeout(() => {
+      toast('Jangan lupa kabari pemesan lewat tombol WA di bawah ya!', {
+        icon: '💡',
+        duration: 4000,
+        style: {
+          borderRadius: '10px',
+          background: '#f8fafc',
+          color: '#4f46e5',
+          fontWeight: 'bold'
+        },
+      });
+    }, 500);
   };
 
   const handleHubungiWA = () => {
-    const pesan = `Halo kak ${booking.nama_pemesan}, saya Admin Kos.\nTerkait pesanan kamar *${booking.nama_kamar}* (No. Order: ${booking.no_order})...`;
-    window.open(`https://wa.me/${booking.no_wa}?text=${encodeURIComponent(pesan)}`, '_blank');
+    // Pesan disesuaikan dengan status terbarunya agar lebih nyambung
+    let pesan = `Halo kak ${booking.nama_pemesan}, saya Admin Kos.\n\nTerkait pesanan kamar *${booking.nama_kamar}* (No. Order: ${booking.no_order})...`;
+    
+    if (booking.status === 'Dikonfirmasi') {
+      pesan = `Halo kak ${booking.nama_pemesan}!\n\nKabar baik, pesanan kamar *${booking.nama_kamar}* kakak (No. Order: ${booking.no_order}) sudah kami *KONFIRMASI*.\nSilakan bersiap untuk check-in pada tanggal ${booking.tanggal_masuk} ya.`;
+    } else if (booking.status === 'Dibatalkan') {
+      pesan = `Halo kak ${booking.nama_pemesan},\n\nMohon maaf, pesanan kamar *${booking.nama_kamar}* (No. Order: ${booking.no_order}) terpaksa kami batalkan karena suatu hal.\nJika ada pertanyaan, silakan balas pesan ini.`;
+    }
+
+    let nomorUser = booking.no_wa.replace(/\D/g, '');
+    if (nomorUser.startsWith('0')) nomorUser = '62' + nomorUser.substring(1);
+
+    window.open(`https://wa.me/${nomorUser}?text=${encodeURIComponent(pesan)}`, '_blank');
   };
 
   const handleMintaUlasan = () => {
     const linkKuesioner = `https://web-kost.vercel.app/ulasan?kode=${booking.no_order}`;
     const pesan = `Halo kak ${booking.nama_pemesan}, terima kasih telah mempercayakan Kos kami! 🙏\n\nUntuk membantu kami meningkatkan pelayanan, yuk luangkan waktu 1 menit untuk mengisi ulasan dan pengalaman kakak selama ngekos di sini:\n\n👉 ${linkKuesioner}\n\nTerima kasih dan sukses selalu!`;
-    window.open(`https://wa.me/${booking.no_wa}?text=${encodeURIComponent(pesan)}`, '_blank');
+    
+    let nomorUser = booking.no_wa.replace(/\D/g, '');
+    if (nomorUser.startsWith('0')) nomorUser = '62' + nomorUser.substring(1);
+
+    window.open(`https://wa.me/${nomorUser}?text=${encodeURIComponent(pesan)}`, '_blank');
   };
 
   const getBadgeColor = (status) => {
@@ -48,29 +79,16 @@ function BookingRow({ booking, refreshData }) {
     }
   };
 
-  const formatRupiah = (angka) => {
-    return angka ? new Intl.NumberFormat('id-ID').format(angka) : '-';
-  };
+  const formatRupiah = (angka) => angka ? new Intl.NumberFormat('id-ID').format(angka) : '-';
 
   return (
     <>
-      <tr 
-        className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer" 
-        onClick={() => setIsOpen(!isOpen)}
-      >
+      <tr className="border-b border-gray-100 hover:bg-gray-50 transition cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
         <td className="py-4 font-bold text-gray-700 pl-4">{booking.no_order}</td>
         <td className="py-4 text-gray-700 font-medium">{booking.nama_pemesan}</td>
         <td className="py-4 text-gray-500">{booking.nama_kamar}</td>
-        <td className="py-4">
-          <span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getBadgeColor(booking.status)}`}>
-            {booking.status}
-          </span>
-        </td>
-        <td className="py-4 text-right pr-4">
-          <button className="text-gray-400 hover:text-indigo-600 transition bg-gray-100 p-1.5 rounded-full">
-            {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
-        </td>
+        <td className="py-4"><span className={`px-3 py-1.5 rounded-full text-xs font-bold border ${getBadgeColor(booking.status)}`}>{booking.status}</span></td>
+        <td className="py-4 text-right pr-4"><button className="text-gray-400 hover:text-indigo-600 transition bg-gray-100 p-1.5 rounded-full">{isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</button></td>
       </tr>
 
       {isOpen && (
@@ -78,56 +96,26 @@ function BookingRow({ booking, refreshData }) {
           <td colSpan="5" className="p-6 text-sm text-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="space-y-3">
-                <div>
-                  <p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">No. WhatsApp</p>
-                  <p className="font-medium text-gray-800">{booking.no_wa}</p>
-                </div>
-                <div>
-                  <p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">Rencana Check-in</p>
-                  <p className="font-medium text-gray-800">{booking.tanggal_masuk || '-'}</p>
-                </div>
+                <div><p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">No. WhatsApp</p><p className="font-medium text-gray-800">{booking.no_wa}</p></div>
+                <div><p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">Rencana Check-in</p><p className="font-medium text-gray-800">{booking.tanggal_masuk || '-'}</p></div>
               </div>
-
               <div className="space-y-3">
-                <div>
-                  <p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">Durasi Sewa</p>
-                  <p className="font-medium text-gray-800">{booking.durasi || '-'}</p>
-                </div>
-                <div>
-                  <p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">Total Biaya</p>
-                  <p className="font-bold text-indigo-600">Rp {formatRupiah(booking.total_harga)}</p>
-                </div>
+                <div><p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">Durasi Sewa</p><p className="font-medium text-gray-800">{booking.durasi || '-'}</p></div>
+                <div><p className="font-bold text-[11px] uppercase text-indigo-400 tracking-wider mb-1">Total Biaya</p><p className="font-bold text-indigo-600">Rp {formatRupiah(booking.total_harga)}</p></div>
               </div>
-
               <div className="bg-white p-3 rounded-xl border border-indigo-100 shadow-sm">
                 <p className="font-bold text-[11px] uppercase text-gray-400 tracking-wider mb-2">Ubah Status Pesanan</p>
-                <select 
-                  className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 cursor-pointer outline-none transition"
-                  value={booking.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  disabled={isUpdating}
-                >
-                  <option value="Menunggu">🟡 Menunggu</option>
-                  <option value="Dikonfirmasi">🟢 Dikonfirmasi</option>
-                  <option value="Selesai">🔵 Selesai (Check-out)</option>
-                  <option value="Dibatalkan">🔴 Dibatalkan</option>
+                <select className="w-full bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2 cursor-pointer outline-none transition" value={booking.status} onChange={(e) => handleStatusChange(e.target.value)} disabled={isUpdating}>
+                  <option value="Menunggu">🟡 Menunggu</option><option value="Dikonfirmasi">🟢 Dikonfirmasi</option><option value="Selesai">🔵 Selesai (Check-out)</option><option value="Dibatalkan">🔴 Dibatalkan</option>
                 </select>
               </div>
             </div>
-
             <div className="flex flex-wrap gap-3 pt-4 border-t border-indigo-100/50">
-               <button 
-                onClick={handleHubungiWA}
-                className="flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-green-600 shadow-md transition"
-               >
+               <button onClick={handleHubungiWA} className="flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-green-600 shadow-md transition">
                  <MessageCircle size={16} /> Hubungi Pemesan
                </button>
-               
                {booking.status === 'Selesai' && (
-                 <button 
-                  onClick={handleMintaUlasan}
-                  className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-md transition animate-pulse"
-                 >
+                 <button onClick={handleMintaUlasan} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-indigo-700 shadow-md transition animate-pulse">
                    <Star size={16} /> Minta Ulasan (WA)
                  </button>
                )}
@@ -146,10 +134,9 @@ export default function ExpandableBookingTable() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // State untuk Fitur Baru
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Batas data per halaman
+  const itemsPerPage = 5; 
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -168,12 +155,10 @@ export default function ExpandableBookingTable() {
     fetchBookings();
   }, []);
 
-  // Kembali ke halaman 1 setiap kali user mengetik pencarian
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // LOGIKA PENCARIAN (Live Search)
   const filteredBookings = bookings.filter((booking) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -184,18 +169,15 @@ export default function ExpandableBookingTable() {
     );
   });
 
-  // LOGIKA PAGINATION
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   
-  // Data final yang akan di-render di tabel (Sudah di-filter & dipotong per 5)
   const currentBookings = filteredBookings.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
       
-      {/* HEADER: Judul, Search, & Refresh */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h3 className="font-extrabold text-2xl text-gray-800">Data Booking Lengkap</h3>
@@ -203,7 +185,6 @@ export default function ExpandableBookingTable() {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          {/* Input Live Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
@@ -224,7 +205,6 @@ export default function ExpandableBookingTable() {
         </div>
       </div>
       
-      {/* TABEL DATA */}
       <div className="overflow-x-auto rounded-xl border border-gray-100">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -259,7 +239,6 @@ export default function ExpandableBookingTable() {
         </table>
       </div>
 
-      {/* PAGINATION CONTROLS */}
       {!loading && filteredBookings.length > 0 && (
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-100 gap-4">
           <p className="text-sm text-gray-500">
