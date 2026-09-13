@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient'; // Sesuaikan path jika berbeda
 import { Home, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import AnalyticsDashboard from '../../components/admin/AnalyticsDashboard';
 
 export default function DashboardHome() {
   const [stats, setStats] = useState({
@@ -90,6 +91,7 @@ export default function DashboardHome() {
           </div>
         </div>
       </div>
+      <AnalyticsDashboard/>
 
     </>
   );
